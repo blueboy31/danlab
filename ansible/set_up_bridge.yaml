@@ -1,0 +1,42 @@
+- name: Configure network bridge and add ethernet device
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Install NetworkManager
+      ansible.builtin.yum:
+        name: NetworkManager
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Install NetworkManager
+      ansible.builtin.apt:
+        name: network-manager
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Create network bridge
+      community.general.nmcli:
+        conn_name: br0
+        type: bridge
+        ifname: br0
+        state: present
+
+    - name: Add ethernet device to the bridge
+      community.general.nmcli:
+        conn_name: enp111s0
+        type: bridge-slave
+        ifname: enp111s0
+        master: br0
+        stp: false
+        state: present
+
+# Requires ansible community.general >9.5, for down/up
+    - name: Bring down connection Profile 1
+      community.general.nmcli:
+        conn_name: "Profile 1"
+        state: "down"
+
+    - name: Bring up the bridge interface
+      community.general.nmcli:
+        conn_name: br0
+        state: up
